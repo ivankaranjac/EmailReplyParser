@@ -1,5 +1,5 @@
 {
-    "name": "willdurand/email-reply-parser",
+    "name": "ivankaranjac/email-reply-parser",
     "type": "library",
     "description": "Port of the cool GitHub's EmailReplyParser library in PHP 5.3",
     "keywords": ["email", "reply-parser"],
