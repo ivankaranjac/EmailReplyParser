@@ -36,10 +36,66 @@ class EmailParser
         '/^(20[0-9]{2}\-(?:0?[1-9]|1[012])\-(?:0?[0-9]|[1-2][0-9]|3[01]|[1-9])\s[0-2]?[0-9]:\d{2}\s.+?:)$/ms', // 20YY-MM-DD HH:II GMT+01:00 NAME <EMAIL>:
     );
 
+    private $quoteRegex = array(
+        '/((On\h(?:[^\n\r]+)\n?(?:[^\n\r]*?)wrote\h?:)(.*))/si', // On DATE, NAME <EMAIL> wrote:
+        '/((Le\h(?:[^\n\r]+)\n?(?:[^\n\r]*?)écrit\h?:)(.*))/si', // Le DATE, NAME <EMAIL> a écrit :
+        '/((El\h(?:[^\n\r]+)\n?(?:[^\n\r]*?)scribió\h?:)(.*))/si', // El DATE, NAME <EMAIL> escribió:
+        '/((20[0-9]{2}\-(?:0?[1-9]|1[012])\-(?:0?[0-9]|[1-2][0-9]|3[01]|[1-9])\s[0-2]?[0-9]:\d{2}\s.+?:\n)(.*))/si' // 20YY-MM-DD HH:II GMT+01:00 NAME <EMAIL>:
+    );
+
+    private $quoteRegex2 = array(
+        "en" => array("From", "Sent", "To", "Subject", "Date"),
+        "fr" => array("De", "Envoyé", "À", "Objet", "Date"),
+        "es" => array("De", "Enviado", "A", "Sujeto", "Fecha")
+    );
+
     /**
      * @var FragmentDTO[]
      */
     private $fragments = array();
+
+    /**
+     * @param $html
+     * @param string|null $tag
+     * @return string
+     */
+    public function parseHtml($html, $tag = null)
+    {
+        if ($tag && false !== strpos($html, $tag)) {
+            $html = substr($html, 0, strpos($html, $tag));
+        }
+
+        $html = preg_replace('/(<(script|style)\b[^>]*>).*?(<\/\2>)/is', "", $html);
+
+        $html = preg_replace('/\<br.*?>/si', "\n", $html);
+        $html = preg_replace('/\<\/div>/si', "\n", $html);
+
+        $text = strip_tags($html);
+
+
+        foreach ($this->quoteRegex as $reg) {
+            $text = preg_replace($reg, "", $text);
+        }
+
+        foreach ($this->quoteRegex2 as $tag) {
+            $text = preg_replace(
+                '/((^' . $tag[0] . '\s?:\s?\w.+\n)|(^' . $tag[1] . '\s?:\s?\w.+\n)|(^' . $tag[2] . '\s?:\s?\w.+\n)|(^' . $tag[3] . '\s?:\s?\w.+\n)|(^' . $tag[4] . '\s?:\s?\w.+\n))' .
+                '?((^' . $tag[0] . '\s?:\s?\w.+\n)|(^' . $tag[1] . '\s?:\s?\w.+\n)|(^' . $tag[2] . '\s?:\s?\w.+\n)|(^' . $tag[3] . '\s?:\s?\w.+\n)|(^' . $tag[4] . '\s?:\s?\w.+\n))' .
+                '(.*\n)+/mi',
+                "", $text
+            );
+        }
+
+        //$text = preg_replace('/\h+/um', " ", $text);
+        $text = preg_replace('/ +/s', " ", $text);
+
+        $text = preg_replace('/(\h*?\v)+/s', "\n", $text);
+
+        $text = html_entity_decode($text);
+        $text = htmlspecialchars_decode($text, ENT_QUOTES);
+
+        return trim($text);
+    }
 
     /**
      * Parse a text which represents an email and splits it into fragments.
