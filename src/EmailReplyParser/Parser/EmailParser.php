@@ -86,8 +86,7 @@ class EmailParser
             );
         }
 
-        //$text = preg_replace('/\h+/um', " ", $text);
-        $text = preg_replace('/ +/s', " ", $text);
+        $text = preg_replace('/\h+/um', " ", $text);
 
         $text = preg_replace('/(\h*?\v)+/s', "\n", $text);
 
